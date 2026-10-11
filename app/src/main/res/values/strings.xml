@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Shorts Blocker</string>
+    <string name="accessibility_service_description">
+        Ye service YouTube Shorts aur Instagram Reels par bitaya gaya time track karti hai
+        aur daily 1 ghante ki limit paar hone par app ko band kar deti hai.
+    </string>
+</resources>
