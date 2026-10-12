@@ -23,7 +23,7 @@ object AccessibilityUtils {
         return false
     }
 
-    fun containsAnyText(root: AccessibilityNodeInfo?, needles: List<String>, maxNodesToScan: Int = 400): Boolean {
+    fun containsAnyText(root: AccessibilityNodeInfo?, needles: List<String>, maxNodesToScan: Int = 400, selectedOnly: Boolean = false): Boolean {
         if (root == null) return false
         val queue = ArrayDeque<AccessibilityNodeInfo>()
         queue.add(root)
@@ -31,6 +31,10 @@ object AccessibilityUtils {
         while (queue.isNotEmpty() && scanned < maxNodesToScan) {
             val node = queue.poll() ?: continue
             scanned++
+            if (selectedOnly && !node.isSelected) {
+                for (i in 0 until node.childCount) { node.getChild(i)?.let { queue.add(it) } }
+                continue
+            }
             val text = node.text?.toString()
             val desc = node.contentDescription?.toString()
             for (needle in needles) {

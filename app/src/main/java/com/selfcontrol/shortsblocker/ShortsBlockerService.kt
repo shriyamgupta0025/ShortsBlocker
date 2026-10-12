@@ -34,22 +34,22 @@ class ShortsBlockerService : AccessibilityService() {
         handler.post(tickRunnable)
     }
 
+    // Abhi foreground mein Shorts/Reels chal rahi hai ya nahi - har baar fresh check
+    private fun detectShortsOrReels(): Boolean {
+        val root = try { rootInActiveWindow } catch (e: Exception) { null } ?: return false
+        val pkg = root.packageName?.toString() ?: return false
+        if (pkg != YOUTUBE_PKG && pkg != INSTAGRAM_PKG) return false
+        // Sirf view-id ya "selected" Shorts/Reels tab - normal screens par false positive nahi
+        return AccessibilityUtils.containsAnyViewId(root, shortsReelsIds(pkg)) ||
+                AccessibilityUtils.containsAnyText(root, listOf("Shorts", "Reels"), selectedOnly = true)
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val pkg = event?.packageName?.toString() ?: return
-
-        if (pkg != YOUTUBE_PKG && pkg != INSTAGRAM_PKG) {
-            isInShortsOrReels = false
-            return
-        }
-
-        val root = rootInActiveWindow
-        val inShorts = AccessibilityUtils.containsAnyViewId(root, shortsReelsIds(pkg)) ||
-                AccessibilityUtils.containsAnyText(root, listOf("Shorts", "Reels", "Reel"))
+        if (event == null) return
+        val inShorts = detectShortsOrReels()
         isInShortsOrReels = inShorts
 
-        // IMPORTANT: Sirf Shorts/Reels screen ko block karte hain, poori app ko nahi.
-        // Isse YouTube par normal (padhai wale) video hamesha chalte rahenge,
-        // sirf Shorts tab access karte hi turant wapas bhej diya jayega.
+        // Sirf Shorts/Reels screen block hoti hai, normal YouTube video (padhai) nahi.
         if (inShorts && UsageTracker.isBlockedToday(this)) {
             performGlobalAction(GLOBAL_ACTION_BACK)
             overlayHelper?.showBlockedMessage()
@@ -75,6 +75,8 @@ class ShortsBlockerService : AccessibilityService() {
 
     private fun handleTick() {
         if (UsageTracker.isBlockedToday(this)) return
+        // Har second fresh check: app band/switch karte hi timer ruk jaye
+        isInShortsOrReels = detectShortsOrReels()
 
         if (!isInShortsOrReels) {
             // User ne Shorts/Reels chhod diya to grace period cancel kar do
