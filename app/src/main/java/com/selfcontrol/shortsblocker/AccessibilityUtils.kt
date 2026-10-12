@@ -50,4 +50,24 @@ object AccessibilityUtils {
         }
         return false
     }
+
+    /** Screen ke un view-ids ki list jinke naam mein reel/short/clip aata hai (detection + debug ke liye) */
+    fun collectShortsIds(root: AccessibilityNodeInfo?, maxNodesToScan: Int = 800): Set<String> {
+        val out = LinkedHashSet<String>()
+        if (root == null) return out
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(root)
+        var scanned = 0
+        while (queue.isNotEmpty() && scanned < maxNodesToScan) {
+            val node = queue.poll() ?: continue
+            scanned++
+            val id = node.viewIdResourceName
+            if (id != null) {
+                val l = id.lowercase()
+                if (l.contains("reel") || l.contains("short") || l.contains("clips")) out.add(id.substringAfter(":id/"))
+            }
+            for (i in 0 until node.childCount) node.getChild(i)?.let { queue.add(it) }
+        }
+        return out
+    }
 }

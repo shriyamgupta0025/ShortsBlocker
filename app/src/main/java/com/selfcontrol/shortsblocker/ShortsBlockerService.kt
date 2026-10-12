@@ -42,9 +42,13 @@ class ShortsBlockerService : AccessibilityService() {
         val pkg = root.packageName?.toString() ?: return false
         if (pkg != YOUTUBE_PKG && pkg != INSTAGRAM_PKG) { lastDetect = "$pkg -> NAHI"; return false }
         // Sirf view-id ya "selected" Shorts/Reels tab - normal screens par false positive nahi
-        val byId = AccessibilityUtils.containsAnyViewId(root, shortsReelsIds(pkg))
+        val byId0 = AccessibilityUtils.containsAnyViewId(root, shortsReelsIds(pkg))
+        val ids = AccessibilityUtils.collectShortsIds(root)
+        val playerHints = listOf("reel_player", "reel_watch", "shorts_player", "shorts_video", "clips_viewer", "reel_viewer", "reels_viewer")
+        val byId = byId0 || ids.any { id -> playerHints.any { id.contains(it, ignoreCase = true) } }
         val byTab = AccessibilityUtils.containsAnyText(root, listOf("Shorts", "Reels"), selectedOnly = true)
-        lastDetect = "$pkg id=$byId tab=$byTab -> " + if (byId || byTab) "HAAN" else "NAHI"
+        lastDetect = "$pkg id=$byId tab=$byTab -> " + (if (byId || byTab) "HAAN" else "NAHI") +
+                "\nids: " + ids.take(8).joinToString(", ")
         return byId || byTab
     }
 
