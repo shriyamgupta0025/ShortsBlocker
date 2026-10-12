@@ -50,6 +50,7 @@ class ShortsBlockerService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        guardSelf(event)
         val inShorts = detectShortsOrReels()
         isInShortsOrReels = inShorts
 
@@ -58,6 +59,22 @@ class ShortsBlockerService : AccessibilityService() {
             performGlobalAction(GLOBAL_ACTION_BACK)
             overlayHelper?.showBlockedMessage()
             isInShortsOrReels = false
+        }
+    }
+
+    // Settings / uninstall screen par "Shorts Blocker" dikhte hi home bhej do
+    // (jab tak 24 ghante wala unlock complete na ho)
+    private fun guardSelf(event: AccessibilityEvent) {
+        val pkg = event.packageName?.toString() ?: return
+        if (pkg == packageName) return
+        val isSystemManager = pkg.contains("settings") || pkg.contains("packageinstaller") ||
+                pkg.contains("permissioncontroller") || pkg == "com.android.vending"
+        if (!isSystemManager) return
+        if (!UsageTracker.isProtected(this)) return
+        val root = try { rootInActiveWindow } catch (e: Exception) { null } ?: return
+        if (AccessibilityUtils.containsAnyText(root, listOf("Shorts Blocker"), maxNodesToScan = 600)) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            overlayHelper?.showProtectedMessage()
         }
     }
 

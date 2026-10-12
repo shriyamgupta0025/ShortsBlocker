@@ -15,6 +15,8 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var statusText: TextView
     private lateinit var usageText: TextView
+    private lateinit var lockText: TextView
+    private lateinit var btnUnlock: Button
 
     private val refreshRunnable = object : Runnable {
         override fun run() {
@@ -29,6 +31,13 @@ class MainActivity : AppCompatActivity() {
 
         statusText = findViewById(R.id.statusText)
         usageText = findViewById(R.id.usageText)
+        lockText = findViewById(R.id.lockText)
+        btnUnlock = findViewById(R.id.btnUnlock)
+        btnUnlock.setOnClickListener {
+            if (UsageTracker.unlockAt(this) == 0L) UsageTracker.requestUnlock(this)
+            else UsageTracker.cancelUnlock(this)
+            refreshUi()
+        }
 
         findViewById<Button>(R.id.btnEnableAccessibility).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -75,5 +84,21 @@ class MainActivity : AppCompatActivity() {
             else -> "Accessibility Service: ON hai. Tracking chalu hai."
         }
         usageText.text = "Aaj ka Shorts/Reels time: $minutes min $remSeconds sec / 60 min\n\nDetect: ${ShortsBlockerService.lastDetect}"
+    }
+
+        val at = UsageTracker.unlockAt(this)
+        val now = System.currentTimeMillis()
+        if (at == 0L) {
+            lockText.text = "Protection ON: Settings se band/uninstall nahi ho sakta."
+            btnUnlock.text = "Protection hatane ka request (24 ghante wait)"
+        } else if (now < at) {
+            val h = (at - now) / 3600000
+            val m = ((at - now) / 60000) % 60
+            lockText.text = "Unlock request chalu: $h ghante $m min baad 30 min ke liye Settings khulegi."
+            btnUnlock.text = "Request cancel karo (protection wapas)"
+        } else {
+            lockText.text = "Unlock window khuli hai (30 min). Abhi band/uninstall kar sakte ho."
+            btnUnlock.text = "Window band karo (protection wapas)"
+        }
     }
 }

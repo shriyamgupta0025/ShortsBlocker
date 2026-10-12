@@ -84,6 +84,16 @@ class OverlayHelper(private val context: Context) {
         dismissWarning()
     }
 
+    fun showProtectedMessage() {
+        handler.post {
+            Toast.makeText(
+                context,
+                "Shorts Blocker protected hai. Isko band/uninstall karne ke liye app mein 24 ghante ka unlock request karo.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     fun cleanup() {
         dismissWarning()
     }

@@ -55,4 +55,31 @@ object UsageTracker {
         ensureFreshDay(ctx)
         prefs(ctx).edit().putBoolean(KEY_BLOCKED, blocked).apply()
     }
+
+    // ---- Protection lock: band/uninstall karne se pehle 24 ghante ka wait ----
+    private const val KEY_UNLOCK_AT = "unlock_at"
+    const val UNLOCK_WAIT_MS = 24L * 60 * 60 * 1000
+    private const val UNLOCK_WINDOW_MS = 30L * 60 * 1000
+
+    fun requestUnlock(ctx: Context) {
+        if (prefs(ctx).getLong(KEY_UNLOCK_AT, 0L) == 0L)
+            prefs(ctx).edit().putLong(KEY_UNLOCK_AT, System.currentTimeMillis() + UNLOCK_WAIT_MS).apply()
+    }
+
+    fun cancelUnlock(ctx: Context) {
+        prefs(ctx).edit().putLong(KEY_UNLOCK_AT, 0L).apply()
+    }
+
+    fun unlockAt(ctx: Context): Long = prefs(ctx).getLong(KEY_UNLOCK_AT, 0L)
+
+    /** true = Settings/uninstall se app ko chhedna band hai */
+    fun isProtected(ctx: Context): Boolean {
+        val at = unlockAt(ctx)
+        if (at == 0L) return true
+        val now = System.currentTimeMillis()
+        if (now < at) return true            // abhi wait chal raha hai
+        if (now < at + UNLOCK_WINDOW_MS) return false  // 30 min ki khuli window
+        cancelUnlock(ctx)                    // window nikal gayi, phir lock
+        return true
+    }
 }
