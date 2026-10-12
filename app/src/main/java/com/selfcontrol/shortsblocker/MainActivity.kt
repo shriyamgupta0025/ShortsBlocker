@@ -74,6 +74,6 @@ class MainActivity : AppCompatActivity() {
             blocked -> "Aaj YouTube/Instagram BLOCK hai (limit paar ho gaya)."
             else -> "Accessibility Service: ON hai. Tracking chalu hai."
         }
-        usageText.text = "Aaj ka Shorts/Reels time: $minutes min $remSeconds sec / 60 min"
+        usageText.text = "Aaj ka Shorts/Reels time: $minutes min $remSeconds sec / 60 min\n\nDetect: ${ShortsBlockerService.lastDetect}"
     }
 }

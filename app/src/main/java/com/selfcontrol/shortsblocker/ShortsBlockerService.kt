@@ -13,6 +13,7 @@ class ShortsBlockerService : AccessibilityService() {
 
         // Warning ke baad app khud band hone se pehle itna grace time (seconds)
         const val GRACE_PERIOD_SECONDS = 15
+        @Volatile var lastDetect: String = "-"
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -36,12 +37,15 @@ class ShortsBlockerService : AccessibilityService() {
 
     // Abhi foreground mein Shorts/Reels chal rahi hai ya nahi - har baar fresh check
     private fun detectShortsOrReels(): Boolean {
-        val root = try { rootInActiveWindow } catch (e: Exception) { null } ?: return false
+        val root = try { rootInActiveWindow } catch (e: Exception) { null }
+        if (root == null) { lastDetect = "koi window nahi -> NAHI"; return false }
         val pkg = root.packageName?.toString() ?: return false
-        if (pkg != YOUTUBE_PKG && pkg != INSTAGRAM_PKG) return false
+        if (pkg != YOUTUBE_PKG && pkg != INSTAGRAM_PKG) { lastDetect = "$pkg -> NAHI"; return false }
         // Sirf view-id ya "selected" Shorts/Reels tab - normal screens par false positive nahi
-        return AccessibilityUtils.containsAnyViewId(root, shortsReelsIds(pkg)) ||
-                AccessibilityUtils.containsAnyText(root, listOf("Shorts", "Reels"), selectedOnly = true)
+        val byId = AccessibilityUtils.containsAnyViewId(root, shortsReelsIds(pkg))
+        val byTab = AccessibilityUtils.containsAnyText(root, listOf("Shorts", "Reels"), selectedOnly = true)
+        lastDetect = "$pkg id=$byId tab=$byTab -> " + if (byId || byTab) "HAAN" else "NAHI"
+        return byId || byTab
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -60,15 +64,11 @@ class ShortsBlockerService : AccessibilityService() {
     private fun shortsReelsIds(pkg: String): List<String> {
         return if (pkg == YOUTUBE_PKG) {
             listOf(
-                "com.google.android.youtube:id/reel_player_page_container",
-                "com.google.android.youtube:id/reel_recycler",
-                "com.google.android.youtube:id/shorts_container"
+                "com.google.android.youtube:id/reel_player_page_container"
             )
         } else {
             listOf(
-                "com.instagram.android:id/clips_viewer_view_pager",
-                "com.instagram.android:id/clips_swipe_refresh_container",
-                "com.instagram.android:id/reels_tray_container"
+                "com.instagram.android:id/clips_viewer_view_pager"
             )
         }
     }
